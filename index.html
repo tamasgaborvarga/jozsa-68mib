@@ -527,8 +527,8 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
                        a tengelyvonal átadja a helyét a kötélnek
      LETÉTEL   1,68 s  a kötél belazul, a hevederek leoldanak, a csörlő gyorsulva kihúzza a horgot
      SZÓJEL    1,68 s  JÓZSA KFT. középről kifelé, betűnként; 1,96 s TISZAFÜRED középről kinyílik
-     KILÉPÉS   2,75 s  a talpvonal kifut a képernyő széléig (a végjelek kiúsznak), majd a képernyő e vonal
-                       mentén kettényílik: a jel a felső, a szójel az alsó panellel távozik, a vágás két éle
+     KILÉPÉS   2,55 s  a talpvonal kifut a képernyő széléig (a végjelek kiúsznak), és még futás közben
+                       a képernyő e vonal mentén kettényílik (egy folyamatos mozdulat): a jel a felső, a szójel az alsó panellel távozik, a vágás két éle
                        a panelekkel halad; alatta indul a hero animációja
    Az időzítések egy helyen vannak (T, D); a daru mozgása mintavételezett fizikából generált keyframe.
    Munkamenetenként egyszer; koppintásra átugorható (a kilépő mozdulat akkor is lefut).
@@ -543,9 +543,10 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
       SNAP='cubic-bezier(.2,.9,.25,1)',   /* gépies elhelyezés: gyors indulás, kemény megállás */
       FALL='cubic-bezier(.5,0,1,.5)',     /* szabadesés: végig gyorsul */
       HOIST='cubic-bezier(.55,0,.9,.35)', /* csörlő: lassan indul, gyorsulva viszi ki a horgot */
-      DOOR='cubic-bezier(.76,0,.24,1)';   /* kilépő panelek */
+      EXT='cubic-bezier(.4,0,.2,1)',      /* vágóvonal: lágyan indul a talpvonalból, nincs „rántás” */
+      DOOR='cubic-bezier(.65,0,.25,1)';   /* kilépő panelek */
   /* idővonal (s) és időtartamok — minden ütem innen számolódik */
-  var T={line:.05,axis:.12,draw:.14,base:.42,colL:.84,colR:.96,crane:.98,city:1.96,exit:2.75},
+  var T={line:.05,axis:.12,draw:.14,base:.42,colL:.84,colR:.96,crane:.98,city:1.96,exit:2.55},
       D={drop:.42,erect:.28,crane:.7},
       HIT=T.base+D.drop*.76,   /* az alap becsapódása (a jx-drop 76%-ánál) */
       LAND=T.crane+D.crane,    /* a tetőmodul letétele */
@@ -574,7 +575,7 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
        1 px átfedés: nincs hajszálrés */
     '.jx-pn{position:absolute;left:0;right:0;background:var(--night);will-change:transform;transition:transform .75s '+DOOR+'}'+
     '.jx-pt{top:0;height:calc(var(--y,50%) + 1px)}.jx-pb{top:var(--y,50%);bottom:0}'+
-    '.jx-pt:after,.jx-pb:before{content:"";position:absolute;left:0;right:0;height:1px;background:var(--on-night-2);opacity:0}'+
+    '.jx-pt:after,.jx-pb:before{content:"";position:absolute;left:0;right:0;height:1px;background:var(--on-night-2);opacity:0;transition:opacity .2s ease}'+
     '.jx-pt:after{bottom:0}.jx-pb:before{top:0}'+
     '.jx-intro.open .jx-pt{transform:translateY(-100%)}.jx-intro.open .jx-pb{transform:translateY(100%)}'+
     '.jx-intro.open .jx-pt:after,.jx-intro.open .jx-pb:before{opacity:.5}'+
@@ -592,10 +593,11 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
     '.jx-cut{left:0;right:0;top:var(--y);height:1px;transform:scaleX(var(--s,0))}'+
     '.jx-tk{left:50%;top:calc(var(--y) - 4px);width:1px;height:9px}'+
     '.jx-tl{transform:translateX(-'+GW/2+'px)}.jx-tr{transform:translateX('+(GW/2-1)+'px)}'+
-    '.jx-intro.out .jx-cut,.jx-intro.out .jx-tk{opacity:.5;transition:transform .32s '+SNAP+'}'+
+    '.jx-intro.out .jx-cut,.jx-intro.out .jx-tk{opacity:.5;transition:transform .4s '+EXT+'}'+
     '.jx-intro.out .jx-cut{transform:scaleX(1)}'+
     '.jx-intro.out .jx-tl{transform:translateX(calc(var(--hw) * -1))}.jx-intro.out .jx-tr{transform:translateX(var(--hw))}'+
-    '.jx-intro.open .jx-cut,.jx-intro.open .jx-tk{opacity:0}'+
+    /* a vágóvonal a nyílás elején áttűnik a két panel élébe, miközben még fut kifelé */
+    '.jx-intro.open .jx-cut,.jx-intro.open .jx-tk{opacity:0;transition:transform .4s '+EXT+',opacity .2s ease}'+
     /* tartalom: kilépéskor a jel a felső, a szójel az alsó panellel távozik, kicsit előrébb járva (mélység) */
     '.jx-in{position:relative;isolation:isolate;display:grid;justify-items:center}'+
     '.jx-in:before{content:"";position:absolute;z-index:-1;left:50%;top:70px;width:380px;height:380px;margin:-190px 0 0 -190px;'+
@@ -699,10 +701,10 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
     ov.style.setProperty('--hw',(W/2+8)+'px');
     void ov.offsetWidth; /* a kiinduló állapot rögzítése, hogy az átmenetek innen induljanak */
     ov.classList.add('out');
-    setTimeout(function(){ov.classList.add('open')},360);
+    setTimeout(function(){ov.classList.add('open')},260);
     /* a panelek nyílásának harmadánál indul a hero belépője, így a kettő egy mozdulatnak hat */
-    setTimeout(function(){root.classList.remove('intro')},610);
-    setTimeout(function(){ov.remove();st.remove()},1160);
+    setTimeout(function(){root.classList.remove('intro')},510);
+    setTimeout(function(){ov.remove();st.remove()},1060);
   }
   if(!window.JX_INTRO_HOLD)setTimeout(finish,T.exit*1000);
   ov.addEventListener('click',finish);
