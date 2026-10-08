@@ -511,28 +511,31 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
 </head>
 <body>
 <script>
-/* ============ MOBIL LOGÓ-INTRO (v3: „tervrajzból épület”) ============
+/* ============ MOBIL LOGÓ-INTRO (v4: „építkezés”) ============
    Csak ≤767 px-es viewporton (nem user-agent alapján), és csak ha nincs „csökkentett mozgás”.
    Desktopon/tableten ez az egy matchMedia-ellenőrzés fut le: se overlay, se CSS, se időzítő.
-   Történet: a jel előbb tervrajzként rajzolódik ki, aztán úgy épül fel, ahogy egy ház —
-   ALULRÓL FELFELÉ, alaptól a tetőig; végül a talpvonal mentén „szétnyílik” a képernyő.
-   Lágy görbék (cubic-out, a vonalaknál in-out), átfedő ütemek, túllövés és „pattogás” nélkül.
-     PLAN     0,00 s  halvány mérnöki rács + talpvonal végjelekkel, a jel mögött finom fénygömb
-     DRAW     0,10 s  5 elem kontúrja vonalrajzként: alap → bal oszlop → jobb oszlop → gerenda → tető
-     BUILD    0,50 s  ugyanabban a sorrendben a színes elemek alulról, áttűnve „felépülnek” a kontúrba;
-                      mindegyik elem kontúrja a saját elemével együtt oldódik fel
-     COMPLETE 1,20 s  JÓZSA KFT. betűnként fut fel maszkból, alatta TISZAFÜRED beúszik
-     SHINE    1,80 s  egy ferde fénycsík végigsöpör a kész jelen
-     EXIT     2,60 s  a tartalom elhalványul → a talpvonal magasságában vonal fut át a képernyőn →
-                      a kék felület e vonal mentén ketté nyílik (fel/le) → alatta indul a hero animációja
+   Történet: tervrajz → a jel úgy épül fel, ahogy egy ház, súllyal és gépies ritmusban:
+   az alap lezuhan és megül, az oszlopok sorban felállnak, a gerendát és a tetőt daru engedi le.
+     PLAN     0,00 s  mérnöki rács; a talpvonal egy gyors mozdulattal kicsapódik
+     DRAW     0,08 s  5 elem kontúrja gyors egymásutánban (tervrajz = a célhelyek)
+     DROP     0,45 s  ALAP: gyorsulva zuhan, keményen megáll, 1 px-et „összenyomódik”;
+                      a becsapódás pillanatában (0,77 s) a talpvonal felvillan
+     ERECT    0,80 s  BAL, majd JOBB OSZLOP alulról feláll — tak, tak
+     CRANE    0,95 s  GERENDA kötélen, két hevederrel ereszkedik, lassulva teszi le, a kötél felhúzódik
+              1,30 s  TETŐ ugyanígy, a csúcsánál fogva
+     COMPLETE 1,70 s  JÓZSA KFT. betűnként, feszes ütemben fut fel; alatta TISZAFÜRED
+     EXIT     2,65 s  a tartalom eltűnik → vonal fut át a talpvonal magasságában →
+                      a kék felület e vonal mentén ketté nyílik → alatta indul a hero animációja
    Munkamenetenként egyszer; koppintásra átugorható (a kilépő mozdulat akkor is lefut).
    Szándékosan a body elején: az első festésnél már az overlay látszik, nincs hero-villanás. */
 (function(){
-  var mm=window.matchMedia,F=window.JX_INTRO_FORCE; /* F: csak az intro/logo-intro.html munkapéldányban */
+  var mm=window.matchMedia,F=window.JX_INTRO_FORCE; /* F: csak a munkapéldányokban */
   if(!F&&(!mm||!mm('(max-width:767px)').matches||mm('(prefers-reduced-motion:reduce)').matches))return;
   if(!F)try{if(sessionStorage.getItem('jx-intro'))return;sessionStorage.setItem('jx-intro','1')}catch(e){}
   var root=document.documentElement;root.classList.add('intro');
-  var E='cubic-bezier(.33,1,.68,1)',S='cubic-bezier(.45,0,.25,1)',IO='cubic-bezier(.76,0,.24,1)';
+  /* SNAP: gyors indulás, kemény megállás (gépies) · LOWER: daru, lassulva tesz le
+     DROP: gyorsulás (szabadesés) · IO: a panelek nyílása */
+  var SNAP='cubic-bezier(.2,.9,.25,1)',LOWER='cubic-bezier(.3,.6,.25,1)',DROP='cubic-bezier(.55,0,1,.45)',IO='cubic-bezier(.76,0,.24,1)';
   var st=document.createElement('style');
   st.textContent=
     'html.intro{overflow:hidden}'+
@@ -540,78 +543,89 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
     '.jx-intro{position:fixed;inset:0;z-index:1000;display:grid;place-content:center;justify-items:center;cursor:pointer}'+
     '.jx-intro.out{pointer-events:none}'+
     /* két kék panel; kilépéskor a talpvonal (--y) mentén nyílnak szét. 1 px átfedés: nincs hajszálrés */
-    '.jx-pn{position:absolute;left:0;right:0;background:var(--night);will-change:transform;transition:transform .8s '+IO+'}'+
+    '.jx-pn{position:absolute;left:0;right:0;background:var(--night);will-change:transform;transition:transform .7s '+IO+'}'+
     '.jx-pt{top:0;height:calc(var(--y,50%) + 1px)}.jx-pb{top:var(--y,50%);bottom:0}'+
     '.jx-intro.open .jx-pt{transform:translateY(-100%)}.jx-intro.open .jx-pb{transform:translateY(100%)}'+
-    /* mérnöki rács: 24 px-es osztás, középen a legerősebb, a szélek felé elfogy */
+    /* mérnöki rács */
     '.jx-grid{position:absolute;inset:0;pointer-events:none;'+
       'background-image:linear-gradient(rgba(238,241,245,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(238,241,245,.06) 1px,transparent 1px);'+
       'background-size:24px 24px;background-position:center;'+
       '-webkit-mask:radial-gradient(closest-side,#000 30%,transparent);mask:radial-gradient(closest-side,#000 30%,transparent);'+
-      'animation:jx-show 2.2s ease both;transition:opacity .35s ease}'+
+      'animation:jx-show 1.2s ease both;transition:opacity .3s ease}'+
     '.jx-intro.out .jx-grid{opacity:0}'+
-    /* vágóvonal: a talpvonal magasságában fut át a teljes szélességen, mielőtt a panelek szétnyílnak */
-    '.jx-cut{position:absolute;left:0;right:0;top:var(--y,50%);height:1px;background:var(--on-night-2);opacity:.75;transform:scaleX(0);'+
-      'transition:transform .4s '+S+' .12s,opacity .3s ease}'+
+    '.jx-cut{position:absolute;left:0;right:0;top:var(--y,50%);height:1px;background:var(--on-night-2);opacity:.8;transform:scaleX(0);'+
+      'transition:transform .3s '+SNAP+' .1s,opacity .25s ease}'+
     '.jx-intro.out .jx-cut{transform:scaleX(1)}.jx-intro.open .jx-cut{opacity:0}'+
-    '.jx-in{position:relative;isolation:isolate;display:grid;justify-items:center;transition:transform .4s '+E+',opacity .3s ease}'+
+    '.jx-in{position:relative;isolation:isolate;display:grid;justify-items:center;transition:transform .3s '+SNAP+',opacity .25s ease}'+
     '.jx-intro.out .jx-in{transform:scale(.98);opacity:0}'+
-    /* finom fénygömb a jel mögött: mélységet ad a sík háttérnek */
     '.jx-in:before{content:"";position:absolute;z-index:-1;left:50%;top:70px;width:360px;height:360px;margin:-180px 0 0 -180px;'+
-      'background:radial-gradient(closest-side,rgba(185,195,210,.13),transparent);animation:jx-show 1.6s ease .3s both}'+
-    /* jel + talpvonal */
+      'background:radial-gradient(closest-side,rgba(185,195,210,.12),transparent);animation:jx-show 1.2s ease .2s both}'+
+    /* jel + talpvonal (a becsapódáskor felvillan) */
     '.jx-mark{position:relative;width:112px;height:140px}'+
     '.jx-mark svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}'+
-    '.jx-guide{position:absolute;left:50%;bottom:6px;width:200px;height:1px;margin-left:-100px;background:var(--on-night-2);opacity:.5;transform-origin:50% 50%;animation:jx-guide 2s '+S+' 0s both}'+
+    '.jx-guide{position:absolute;left:50%;bottom:6px;width:200px;height:1px;margin-left:-100px;background:var(--on-night-2);transform-origin:50% 50%;animation:jx-guide 2.2s linear both}'+
     '.jx-guide:before,.jx-guide:after{content:"";position:absolute;top:-4px;width:1px;height:9px;background:inherit}'+
     '.jx-guide:before{left:0}.jx-guide:after{right:0}'+
-    /* kontúr (vonalrajz) */
+    /* kontúr (tervrajz) */
     '.jx-ln{fill:none;stroke:var(--on-night-2);stroke-width:1;vector-effect:non-scaling-stroke;stroke-dasharray:1;stroke-dashoffset:1;'+
-      'animation:jx-draw .8s '+S+' both,jx-fade .6s ease forwards}'+
-    '.jx-ln.l1{animation-delay:.1s,.85s}.jx-ln.l2{animation-delay:.18s,.99s}.jx-ln.l3{animation-delay:.24s,1.07s}'+
-    '.jx-ln.l4{animation-delay:.32s,1.23s}.jx-ln.l5{animation-delay:.42s,1.39s}'+
-    /* színes elemek: alulról épülnek a kontúrba */
-    '.jx-intro .p{transform-box:fill-box;transform-origin:50% 100%;animation:jx-build .8s '+E+' both}'+
-    '.jx-intro .p1{animation-delay:.5s}.jx-intro .p2{animation-delay:.64s}.jx-intro .p3{animation-delay:.72s}'+
-    '.jx-intro .p4{animation-delay:.88s}.jx-intro .p5{animation-delay:1.04s}'+
-    /* fénycsík: a jel alakjára vágva söpör végig */
-    '.jx-sh{animation:jx-sweep .8s '+S+' 1.8s both}'+
-    /* szójel */
+      'animation:jx-draw .45s '+SNAP+' both,jx-fade .35s ease forwards}'+
+    '.jx-ln.l1{animation-delay:.08s,.8s}.jx-ln.l2{animation-delay:.14s,1.05s}.jx-ln.l3{animation-delay:.2s,1.15s}'+
+    '.jx-ln.l4{animation-delay:.26s,1.45s}.jx-ln.l5{animation-delay:.32s,1.8s}'+
+    /* ALAP: zuhan és megül · OSZLOPOK: felállnak */
+    '.jx-intro .p{transform-box:fill-box;transform-origin:50% 100%}'+
+    '.jx-intro .p1{animation:jx-drop .42s linear .45s both}'+
+    '.jx-intro .p2{animation:jx-erect .3s '+SNAP+' .8s both}'+
+    '.jx-intro .p3{animation:jx-erect .3s '+SNAP+' .92s both}'+
+    /* DARU: a teher a kötéllel és a hevederekkel együtt ereszkedik; letétel után a hevederek eltűnnek, a kötél felhúzódik */
+    '.jx-lift{animation:jx-lower .5s '+LOWER+' both}'+
+    '.jx-lift.k4{animation-delay:.95s}.jx-lift.k5{animation-delay:1.3s}'+
+    '.jx-rig{fill:none;stroke:var(--on-night-2);stroke-width:1;vector-effect:non-scaling-stroke}'+
+    '.jx-cable{stroke-dasharray:1;animation:jx-reel .3s '+SNAP+' both}'+
+    '.jx-sling{animation:jx-fade .12s ease both}'+
+    '.k4 .jx-cable{animation-delay:1.47s}.k4 .jx-sling{animation-delay:1.45s}'+
+    '.k5 .jx-cable{animation-delay:1.82s}.k5 .jx-sling{animation-delay:1.8s}'+
+    /* szójel: feszes, gyors ütem */
     '.jx-wm{margin-top:22px;text-align:center;color:var(--on-night);font-family:var(--display);line-height:1}'+
     '.jx-mask{display:block;overflow:hidden;padding:.16em .1em .08em}'+
     '.jx-w1{display:block;font-size:2.1rem;font-weight:800;font-stretch:112%;letter-spacing:-.01em;white-space:pre}'+
-    '.jx-c{display:inline-block;will-change:transform;animation:jx-rise .9s '+E+' both}'+
-    '.jx-w2{display:block;margin-top:12px;padding-left:.42em;font-size:.8rem;font-weight:700;letter-spacing:.42em;color:var(--on-night-2);animation:jx-track 1s '+E+' 1.5s both}'+
+    '.jx-c{display:inline-block;will-change:transform;animation:jx-rise .55s '+SNAP+' both}'+
+    '.jx-w2{display:block;margin-top:12px;padding-left:.42em;font-size:.8rem;font-weight:700;letter-spacing:.42em;color:var(--on-night-2);animation:jx-track .6s '+SNAP+' 2s both}'+
     '@keyframes jx-show{from{opacity:0}}'+
-    '@keyframes jx-guide{0%{transform:scaleX(0)}55%{transform:scaleX(1);opacity:.5}85%{opacity:.5}100%{transform:scaleX(1);opacity:0}}'+
+    /* talpvonal: 0–0,35 s kicsapódik · 0,77 s (35%) becsapódás: felvillan · utána halványul, végül eltűnik */
+    '@keyframes jx-guide{0%{transform:scaleX(0);opacity:.5;animation-timing-function:'+SNAP+'}16%{transform:scaleX(1);opacity:.5}'+
+      '34.5%{opacity:.5;animation-timing-function:ease-out}35%{opacity:1}50%{opacity:.5}85%{opacity:.5}100%{transform:scaleX(1);opacity:0}}'+
     '@keyframes jx-draw{to{stroke-dashoffset:0}}'+
     '@keyframes jx-fade{to{opacity:0}}'+
-    '@keyframes jx-build{from{transform:scaleY(0);opacity:0}45%{opacity:1}}'+
-    '@keyframes jx-sweep{from{transform:translateX(0)}to{transform:translateX(150px)}}'+
+    /* szabadesés → kemény megállás (76%) → 1 egységnyi összenyomódás → nyugalom */
+    '@keyframes jx-drop{0%{transform:translateY(-22px);opacity:0;animation-timing-function:'+DROP+'}25%{opacity:1}'+
+      '76%{transform:translateY(0);animation-timing-function:ease-out}86%{transform:scaleY(.9)}100%{transform:none}}'+
+    '@keyframes jx-erect{from{transform:scaleY(0)}}'+
+    '@keyframes jx-lower{from{transform:translateY(-64px);opacity:0}30%{opacity:1}}'+
+    '@keyframes jx-reel{from{stroke-dashoffset:0}to{stroke-dashoffset:1}}'+
     '@keyframes jx-rise{from{transform:translateY(140%)}}'+
-    '@keyframes jx-track{from{opacity:0;transform:translateY(8px)}}';
+    '@keyframes jx-track{from{opacity:0;transform:translateY(6px)}}';
   document.head.appendChild(st);
-  /* sorrend = építési sorrend: 1 alap, 2 bal oszlop, 3 jobb oszlop, 4 gerenda, 5 tető
-     [kontúr, kitöltött alak (attribútumok osztály nélkül), szín] */
-  var g=[
-    ['M28 104 H100 V115 H28 Z','rect x="28" y="104" width="72" height="11" rx="2"','#2FA84F'],
-    ['M35 62 H52 V104 H35 Z','rect x="35" y="62" width="17" height="42" rx="2"','#29A9E1'],
-    ['M76 62 H93 V104 H76 Z','rect x="76" y="62" width="17" height="42" rx="2"','#FBCF07'],
-    ['M32 49 H96 V64 H76 A12 12 0 0 0 52 64 H32 Z','path d="M32 49 H96 V64 H76 A12 12 0 0 0 52 64 H32 Z"','#2FA84F'],
-    ['M64 15 L103 49 L25 49 Z','path d="M64 15 L103 49 L25 49 Z"','#E5342B']
-  ],ln='',fl='',cl='',w='',t='JÓZSA KFT.';
-  for(var i=0;i<g.length;i++){
-    ln+='<path class="jx-ln l'+(i+1)+'" pathLength="1" d="'+g[i][0]+'"/>';
-    fl+='<'+g[i][1]+' class="p p'+(i+1)+'" fill="'+g[i][2]+'"/>';
-    cl+='<'+g[i][1]+'/>';
-  }
-  for(i=0;i<t.length;i++)w+='<span class="jx-c" style="animation-delay:'+(1.2+i*.035).toFixed(3)+'s">'+t[i]+'</span>';
+  /* sorrend = építési sorrend: 1 alap, 2 bal oszlop, 3 jobb oszlop, 4 gerenda, 5 tető */
+  var BEAM='M32 49 H96 V64 H76 A12 12 0 0 0 52 64 H32 Z',ROOF='M64 15 L103 49 L25 49 Z';
+  var ln=['M28 104 H100 V115 H28 Z','M35 62 H52 V104 H35 Z','M76 62 H93 V104 H76 Z',BEAM,ROOF].map(function(d,i){
+    return '<path class="jx-ln l'+(i+1)+'" pathLength="1" d="'+d+'"/>'}).join('');
+  /* daru-teher: kötél (alulról felfelé rajzolva, így a dashoffset-tel felfelé „tekeredik”), hevederek, horog, maga az elem */
+  function lift(k,hookY,slings,shape){
+    return '<g class="jx-lift k'+k+'">'+
+      '<path class="jx-rig jx-cable" pathLength="1" d="M64 '+hookY+' V-420"/>'+
+      (slings?'<path class="jx-rig jx-sling" d="'+slings+'"/>':'')+
+      '<circle class="jx-sling" cx="64" cy="'+hookY+'" r="1.6" fill="var(--on-night-2)"/>'+shape+'</g>'}
+  var svg='<svg viewBox="20 10 88 110">'+ln+
+    '<rect class="p p1" x="28" y="104" width="72" height="11" rx="2" fill="#2FA84F"/>'+
+    '<rect class="p p2" x="35" y="62" width="17" height="42" rx="2" fill="#29A9E1"/>'+
+    '<rect class="p p3" x="76" y="62" width="17" height="42" rx="2" fill="#FBCF07"/>'+
+    lift(4,37,'M35 49 L64 37 L93 49','<path d="'+BEAM+'" fill="#2FA84F"/>')+
+    lift(5,15,'','<path d="'+ROOF+'" fill="#E5342B"/>')+'</svg>';
+  var w='',t='JÓZSA KFT.';
+  for(var i=0;i<t.length;i++)w+='<span class="jx-c" style="animation-delay:'+(1.7+i*.03).toFixed(2)+'s">'+t[i]+'</span>';
   var ov=document.createElement('div');ov.className='jx-intro';ov.setAttribute('aria-hidden','true');
   ov.innerHTML='<div class="jx-pn jx-pt"></div><div class="jx-pn jx-pb"></div><div class="jx-grid"></div><span class="jx-cut"></span>'+
-    '<div class="jx-in"><div class="jx-mark"><span class="jx-guide"></span><svg viewBox="20 10 88 110">'+
-    '<defs><clipPath id="jx-clip">'+cl+'</clipPath><linearGradient id="jx-glint" x1="0" x2="1" y1="0" y2="0">'+
-    '<stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".5"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>'+
-    ln+fl+'<g clip-path="url(#jx-clip)"><path class="jx-sh" d="M-8 10 H22 L-6 120 H-36 Z" fill="url(#jx-glint)"/></g></svg></div>'+
+    '<div class="jx-in"><div class="jx-mark"><span class="jx-guide"></span>'+svg+'</div>'+
     '<div class="jx-wm"><span class="jx-mask"><span class="jx-w1">'+w+'</span></span><span class="jx-w2">TISZAFÜRED</span></div></div>';
   document.body.insertBefore(ov,document.body.firstChild);
   var done=false;
@@ -621,12 +635,12 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
     var gd=ov.querySelector('.jx-guide').getBoundingClientRect();
     ov.style.setProperty('--y',Math.round(gd.top)+'px');
     ov.classList.add('out');
-    setTimeout(function(){ov.classList.add('open')},500);
+    setTimeout(function(){ov.classList.add('open')},400);
     /* a panelek nyílásának félútján indul a hero belépője, így a kettő egy mozdulatnak hat */
-    setTimeout(function(){root.classList.remove('intro')},760);
-    setTimeout(function(){ov.remove();st.remove()},1360);
+    setTimeout(function(){root.classList.remove('intro')},620);
+    setTimeout(function(){ov.remove();st.remove()},1160);
   }
-  if(!window.JX_INTRO_HOLD)setTimeout(finish,2600);
+  if(!window.JX_INTRO_HOLD)setTimeout(finish,2650);
   ov.addEventListener('click',finish);
 })();
 </script>
