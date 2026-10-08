@@ -524,9 +524,9 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
    Munkamenetenként egyszer; koppintásra átugorható. Szándékosan a body elején: az első festésnél
    már az overlay látszik, nincs hero-villanás. */
 (function(){
-  var mm=window.matchMedia;
-  if(!mm||!mm('(max-width:767px)').matches||mm('(prefers-reduced-motion:reduce)').matches)return;
-  try{if(sessionStorage.getItem('jx-intro'))return;sessionStorage.setItem('jx-intro','1')}catch(e){}
+  var mm=window.matchMedia,F=window.JX_INTRO_FORCE; /* F: csak az intro/logo-intro.html munkapéldányban */
+  if(!F&&(!mm||!mm('(max-width:767px)').matches||mm('(prefers-reduced-motion:reduce)').matches))return;
+  if(!F)try{if(sessionStorage.getItem('jx-intro'))return;sessionStorage.setItem('jx-intro','1')}catch(e){}
   var root=document.documentElement;root.classList.add('intro');
   var E='cubic-bezier(.16,1,.3,1)',IO='cubic-bezier(.76,0,.24,1)';
   var st=document.createElement('style');
@@ -577,7 +577,7 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
     setTimeout(function(){root.classList.remove('intro')},220);
     setTimeout(function(){ov.remove();st.remove()},760);
   }
-  setTimeout(finish,2250);
+  if(!window.JX_INTRO_HOLD)setTimeout(finish,2250);
   ov.addEventListener('click',finish);
 })();
 </script>
