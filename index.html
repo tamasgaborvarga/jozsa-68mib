@@ -514,8 +514,13 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
 /* ============ MOBIL LOGÓ-INTRO ============
    Csak ≤767 px-es viewporton (nem user-agent alapján), és csak ha nincs „csökkentett mozgás”.
    Desktopon/tableten ez az egy matchMedia-ellenőrzés fut le: se overlay, se CSS, se időzítő.
-   Ütem (~1,4 s): BUILD (5 elem lentről felfelé, 6 px-es ráülés) → ALIGN → LOCK (a jel „bekattan”)
-   → COMPLETE (szójel) → áttűnés a hero-ba; a hero belépő animációja az áttűnéssel indul.
+   Ütem (~2,9 s), egy görbe (expo-out) mindenhol, túllövés nélkül:
+     ALIGN    0,10 s  vízszintes szerkesztővonal húzódik ki a jel talpvonalán
+     BUILD    0,25 s  5 elem FENTRŐL LEFELÉ: tető → gerenda → bal oszlop → jobb oszlop → talapzat;
+                      mindegyik 8 px-ről ül a helyére, a tető/gerenda felülről, a többi alulról „nő” ki
+     LOCK     1,25 s  a talapzat leérkezésekor a jel egyszer „bekattan” (1,5%), a vonal elhalványul
+     COMPLETE 1,40 s  JÓZSA KFT. maszkból fut fel, piros vonal húzódik, TISZAFÜRED ritkulásból zár
+     EXIT     2,25 s  a tartalom felemelkedik, a kék függöny felhúzódik → alatta indul a hero animációja
    Munkamenetenként egyszer; koppintásra átugorható. Szándékosan a body elején: az első festésnél
    már az overlay látszik, nincs hero-villanás. */
 (function(){
@@ -523,38 +528,56 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
   if(!mm||!mm('(max-width:767px)').matches||mm('(prefers-reduced-motion:reduce)').matches)return;
   try{if(sessionStorage.getItem('jx-intro'))return;sessionStorage.setItem('jx-intro','1')}catch(e){}
   var root=document.documentElement;root.classList.add('intro');
+  var E='cubic-bezier(.16,1,.3,1)',IO='cubic-bezier(.76,0,.24,1)';
   var st=document.createElement('style');
   st.textContent=
     'html.intro{overflow:hidden}'+
     'html.intro body>:not(.jx-intro),html.intro body>:not(.jx-intro) *{animation-play-state:paused!important}'+
-    '.jx-intro{position:fixed;inset:0;z-index:1000;background:var(--night);display:grid;place-content:center;justify-items:center;gap:22px;transition:opacity .3s var(--ease)}'+
-    '.jx-intro.out{opacity:0;pointer-events:none}'+
-    '.jx-intro svg{width:96px;height:120px;overflow:visible;animation:jx-lock .16s var(--ease) .6s both}'+
-    '.jx-intro .p{transform-box:fill-box;transform-origin:50% 100%;animation:jx-build .22s var(--ease) both}'+
-    '.jx-intro .p1{animation-delay:.08s}.jx-intro .p2{animation-delay:.16s}.jx-intro .p3{animation-delay:.22s}.jx-intro .p4{animation-delay:.32s}.jx-intro .p5{animation-delay:.42s}'+
-    '.jx-intro .wm{text-align:center;color:var(--on-night);font-family:var(--display);line-height:1}'+
-    '.jx-intro .w1{display:block;font-size:2rem;font-weight:800;font-stretch:112%;letter-spacing:-.01em;animation:jx-up .26s var(--ease) .68s both}'+
-    '.jx-intro .w2{display:block;margin-top:10px;font-size:.8rem;font-weight:700;letter-spacing:.42em;color:var(--on-night-2);animation:jx-up .26s var(--ease) .8s both}'+
-    '@keyframes jx-build{from{opacity:0;transform:translateY(-6px) scaleY(.94)}}'+
-    '@keyframes jx-lock{50%{transform:scale(1.025)}}'+
-    '@keyframes jx-up{from{opacity:0;transform:translateY(5px)}}';
+    '.jx-intro{position:fixed;inset:0;z-index:1000;background:var(--night);display:grid;place-content:center;justify-items:center;cursor:pointer;transition:transform .7s '+IO+'}'+
+    '.jx-intro.out{transform:translateY(-100%);pointer-events:none}'+
+    '.jx-in{display:grid;justify-items:center;transition:transform .45s '+E+',opacity .3s ease}'+
+    '.jx-intro.out .jx-in{transform:translateY(-28px);opacity:0}'+
+    /* jel + szerkesztővonal */
+    '.jx-mark{position:relative;width:104px;height:130px}'+
+    '.jx-mark svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;animation:jx-lock .5s '+E+' 1.25s both}'+
+    '.jx-guide{position:absolute;left:50%;bottom:4px;width:180px;height:1px;margin-left:-90px;background:var(--on-night-2);transform-origin:50% 50%;animation:jx-guide 1.4s '+E+' .1s both}'+
+    '.jx-intro .p{transform-box:fill-box;animation:jx-down .7s '+E+' both}'+
+    '.jx-intro .p1{transform-origin:50% 100%;animation-delay:.25s}'+
+    '.jx-intro .p2{transform-origin:50% 0;animation-delay:.45s}'+
+    '.jx-intro .p3,.jx-intro .p4,.jx-intro .p5{transform-origin:50% 100%;animation-name:jx-up}'+
+    '.jx-intro .p3{animation-delay:.65s}.jx-intro .p4{animation-delay:.75s}.jx-intro .p5{animation-delay:.92s}'+
+    /* szójel */
+    '.jx-wm{margin-top:20px;text-align:center;color:var(--on-night);font-family:var(--display);line-height:1}'+
+    '.jx-mask{display:block;overflow:hidden;padding:.16em .1em .08em}'+
+    '.jx-w1{display:block;font-size:2.1rem;font-weight:800;font-stretch:112%;letter-spacing:-.01em;animation:jx-rise .8s '+E+' 1.4s both}'+
+    '.jx-rule{display:block;width:44px;height:3px;margin:14px auto 0;background:var(--red-fill);transform-origin:50% 50%;animation:jx-rule .7s '+E+' 1.6s both}'+
+    '.jx-w2{display:block;margin-top:14px;padding-left:.42em;font-size:.8rem;font-weight:700;letter-spacing:.42em;color:var(--on-night-2);animation:jx-track 1s '+E+' 1.68s both}'+
+    '@keyframes jx-guide{0%{transform:scaleX(0);opacity:0}25%{opacity:.45}70%{transform:scaleX(1);opacity:.45}100%{transform:scaleX(1);opacity:0}}'+
+    '@keyframes jx-down{from{opacity:0;transform:translateY(-8px) scale(.96)}}'+
+    '@keyframes jx-up{from{opacity:0;transform:translateY(8px) scaleY(.9)}}'+
+    '@keyframes jx-lock{40%{transform:scale(1.015)}}'+
+    '@keyframes jx-rise{from{transform:translateY(150%)}}'+
+    '@keyframes jx-rule{from{transform:scaleX(0)}}'+
+    '@keyframes jx-track{from{opacity:0;letter-spacing:.7em;padding-left:.7em}}';
   document.head.appendChild(st);
   var ov=document.createElement('div');ov.className='jx-intro';ov.setAttribute('aria-hidden','true');
-  ov.innerHTML='<svg viewBox="20 10 88 110">'+
-    '<rect class="p p1" x="28" y="104" width="72" height="11" rx="2" fill="#2FA84F"/>'+
-    '<rect class="p p2" x="35" y="62" width="17" height="42" rx="2" fill="#29A9E1"/>'+
-    '<rect class="p p3" x="76" y="62" width="17" height="42" rx="2" fill="#FBCF07"/>'+
-    '<path class="p p4" d="M32 49 H96 V64 H76 A12 12 0 0 0 52 64 H32 Z" fill="#2FA84F"/>'+
-    '<path class="p p5" d="M64 15 L103 49 L25 49 Z" fill="#E5342B"/></svg>'+
-    '<div class="wm"><span class="w1">JÓZSA KFT.</span><span class="w2">TISZAFÜRED</span></div>';
+  ov.innerHTML='<div class="jx-in"><div class="jx-mark"><span class="jx-guide"></span><svg viewBox="20 10 88 110">'+
+    '<path class="p p1" d="M64 15 L103 49 L25 49 Z" fill="#E5342B"/>'+
+    '<path class="p p2" d="M32 49 H96 V64 H76 A12 12 0 0 0 52 64 H32 Z" fill="#2FA84F"/>'+
+    '<rect class="p p3" x="35" y="62" width="17" height="42" rx="2" fill="#29A9E1"/>'+
+    '<rect class="p p4" x="76" y="62" width="17" height="42" rx="2" fill="#FBCF07"/>'+
+    '<rect class="p p5" x="28" y="104" width="72" height="11" rx="2" fill="#2FA84F"/></svg></div>'+
+    '<div class="jx-wm"><span class="jx-mask"><span class="jx-w1">JÓZSA KFT.</span></span><span class="jx-rule"></span><span class="jx-w2">TISZAFÜRED</span></div></div>';
   document.body.insertBefore(ov,document.body.firstChild);
   var done=false;
   function finish(){
     if(done)return;done=true;
-    root.classList.remove('intro');ov.classList.add('out');
-    setTimeout(function(){ov.remove();st.remove()},340);
+    ov.classList.add('out');
+    /* a függöny félútján indul a hero belépője, így a kettő egy mozdulatnak hat */
+    setTimeout(function(){root.classList.remove('intro')},220);
+    setTimeout(function(){ov.remove();st.remove()},760);
   }
-  setTimeout(finish,1120);
+  setTimeout(finish,2250);
   ov.addEventListener('click',finish);
 })();
 </script>
