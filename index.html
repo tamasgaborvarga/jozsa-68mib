@@ -511,9 +511,10 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
 </head>
 <body>
 <script>
-/* ============ MOBIL LOGÓ-INTRO (v5: „építkezés”, finomhangolt) ============
-   Csak ≤767 px-es viewporton (nem user-agent alapján), és csak ha nincs „csökkentett mozgás”.
-   Desktopon/tableten ez az egy matchMedia-ellenőrzés fut le: se overlay, se CSS, se időzítő.
+/* ============ LOGÓ-INTRO (v6: „építkezés”, minden képernyőn) ============
+   Minden viewporton fut, kivéve ha „csökkentett mozgás” van beállítva. Méret (SC): mobilon 1×,
+   ≥768 px 1,4×, ≥1100 px 1,7× — a teljes kompozíció egyben nagyobbodik, az ütemek változatlanok.
+   (Csak-mobil változat: intro/logo-intro-epitkezes-mobil.html)
    Koncepció: a tervrajz valósággá válik. Minden mozdulatnak fizikai oka van (súly, csörlő, inga),
    és minden a függőleges tengelyből vagy a talpvonalból indul — ez a darab „mozgásnyelve”.
      KITŰZÉS   0,05 s  a talpvonal középről kicsapódik, a végjelei bekattannak; felrajzolódik a
@@ -535,7 +536,7 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
    Szándékosan a body elején: az első festésnél már az overlay látszik, nincs hero-villanás. */
 (function(){
   var mm=window.matchMedia,F=window.JX_INTRO_FORCE; /* F: csak a munkapéldányokban */
-  if(!F&&(!mm||!mm('(max-width:767px)').matches||mm('(prefers-reduced-motion:reduce)').matches))return;
+  if(!F&&(!mm||mm('(prefers-reduced-motion:reduce)').matches))return;
   if(!F)try{if(sessionStorage.getItem('jx-intro'))return;sessionStorage.setItem('jx-intro','1')}catch(e){}
   var root=document.documentElement;root.classList.add('intro');
   /* mozgás-tokenek: minden mozdulattípusnak saját, fizikailag indokolt görbéje van */
@@ -550,7 +551,8 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
       D={drop:.42,erect:.28,crane:.7},
       HIT=T.base+D.drop*.76,   /* az alap becsapódása (a jx-drop 76%-ánál) */
       LAND=T.crane+D.crane,    /* a tetőmodul letétele */
-      GW=200;                  /* a talpvonal szélessége (px) */
+      GW=200,                  /* a talpvonal szélessége (px, 1×-es méretnél) */
+      VW=window.innerWidth,SC=VW>=1100?1.7:VW>=768?1.4:1; /* nagyítás nagyobb képernyőn */
   function s(x){return x.toFixed(3)+'s'}
   /* daru: gyors érkezés a képen kívülről, lassú „centizés” (quart-out), csillapodó lengés;
      letételkor a kitérés, a billegés és a sebességük is pontosan 0 */
@@ -592,14 +594,14 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
     '.jx-cut,.jx-tk{position:absolute;background:var(--on-night-2);opacity:0;pointer-events:none}'+
     '.jx-cut{left:0;right:0;top:var(--y);height:1px;transform:scaleX(var(--s,0))}'+
     '.jx-tk{left:50%;top:calc(var(--y) - 4px);width:1px;height:9px}'+
-    '.jx-tl{transform:translateX(-'+GW/2+'px)}.jx-tr{transform:translateX('+(GW/2-1)+'px)}'+
+    '.jx-tl{transform:translateX(-'+GW*SC/2+'px)}.jx-tr{transform:translateX('+(GW*SC/2-1)+'px)}'+
     '.jx-intro.out .jx-cut,.jx-intro.out .jx-tk{opacity:.5;transition:transform .4s '+EXT+'}'+
     '.jx-intro.out .jx-cut{transform:scaleX(1)}'+
     '.jx-intro.out .jx-tl{transform:translateX(calc(var(--hw) * -1))}.jx-intro.out .jx-tr{transform:translateX(var(--hw))}'+
     /* a vágóvonal a nyílás elején áttűnik a két panel élébe, miközben még fut kifelé */
     '.jx-intro.open .jx-cut,.jx-intro.open .jx-tk{opacity:0;transition:transform .4s '+EXT+',opacity .2s ease}'+
     /* tartalom: kilépéskor a jel a felső, a szójel az alsó panellel távozik, kicsit előrébb járva (mélység) */
-    '.jx-in{position:relative;isolation:isolate;display:grid;justify-items:center}'+
+    '.jx-in{position:relative;isolation:isolate;display:grid;justify-items:center'+(SC>1?';transform:scale('+SC+')':'')+'}'+
     '.jx-in:before{content:"";position:absolute;z-index:-1;left:50%;top:70px;width:380px;height:380px;margin:-190px 0 0 -190px;'+
       'background:radial-gradient(closest-side,rgba(185,195,210,.14),transparent);'+
       'animation:jx-glow 2.4s cubic-bezier(.2,.6,.2,1) .1s backwards;transition:opacity .3s ease}'+
@@ -625,7 +627,7 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
     /* a kontúroknál NINCS non-scaling-stroke: azzal a pathLength-hez mért szaggatás képernyő-, a hossz
        viszont felhasználói egységben számolódik, és a vonal utolsó ~20%-a sosem rajzolódna ki.
        .8 egység ≈ 1 px ennél a méretnél */
-    '.jx-ln{fill:none;stroke:var(--on-night-2);stroke-width:.8;stroke-opacity:.7;stroke-dasharray:1;stroke-dashoffset:1;'+
+    '.jx-ln{fill:none;stroke:var(--on-night-2);stroke-width:'+(.8/SC).toFixed(3)+';stroke-opacity:.7;stroke-dasharray:1;stroke-dashoffset:1;'+
       'animation:jx-draw .45s '+PEN+' both,jx-fade .3s ease forwards}'+
     lnDelay+
     /* alap: zuhan és megül · oszlopok: felállnak */
@@ -697,7 +699,7 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
     var g=ov.querySelector('.jx-guide').getBoundingClientRect(),W=ov.clientWidth;
     ov.style.setProperty('--y',g.top+'px');
     ov.style.setProperty('--h',ov.clientHeight+'px');
-    ov.style.setProperty('--s',GW/W);
+    ov.style.setProperty('--s',GW*SC/W);
     ov.style.setProperty('--hw',(W/2+8)+'px');
     void ov.offsetWidth; /* a kiinduló állapot rögzítése, hogy az átmenetek innen induljanak */
     ov.classList.add('out');
@@ -707,7 +709,10 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
     setTimeout(function(){ov.remove();st.remove()},1060);
   }
   if(!window.JX_INTRO_HOLD)setTimeout(finish,T.exit*1000);
+  /* átugrás: koppintás/kattintás, bármely billentyű vagy görgetés (desktopon ez a természetes) */
   ov.addEventListener('click',finish);
+  addEventListener('keydown',finish,{once:true});
+  addEventListener('wheel',finish,{once:true,passive:true});
 })();
 </script>
 <a class="skip" href="#tartalom">Ugrás a tartalomra</a>
