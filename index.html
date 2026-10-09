@@ -670,7 +670,7 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
     '@keyframes jx-open{from{-webkit-clip-path:inset(0 50% 0 50%);clip-path:inset(0 50% 0 50%)}}';
   document.head.appendChild(st);
   /* sorrend = építési sorrend: 1 alap, 2 bal oszlop, 3 jobb oszlop, 4 gerenda, 5 tető */
-  var BEAM='M32 49 H96 V68 H78 A14 14 0 0 0 50 68 H32 Z',ROOF='M64 15 L104 49 L24 49 Z',
+  var BEAM='M28 49 H100 V68 H78 A14 14 0 0 0 50 68 H28 Z',ROOF='M64 15 L106 49 L22 49 Z',
       outl=['M28 103 H100 V115 H28 Z','M32 68 H50 V103 H32 Z','M78 68 H96 V103 H78 Z',BEAM,ROOF],
       svg='<svg viewBox="20 10 88 110"><path class="jx-axis" d="M64 115 V-8"/>';
   for(i=0;i<5;i++)svg+='<path class="jx-ln l'+(i+1)+'" pathLength="1" d="'+outl[i]+'"/>';
@@ -681,7 +681,7 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
        a terhelés befoglaló dobozának felső közepe = a horog (64, 2) */
     '<g class="jx-crane"><g class="jx-hoist"><path class="jx-rig" d="M64 -3 V-600"/>'+
       '<rect class="jx-hook" x="62" y="-3" width="4" height="5" rx=".8"/></g>'+
-    '<g class="jx-load"><path class="jx-rig jx-sling" d="M24 49 L64 2 L104 49"/>'+
+    '<g class="jx-load"><path class="jx-rig jx-sling" d="M22 49 L64 2 L106 49"/>'+
       '<path d="'+BEAM+'" fill="#2FA84F"/><path d="'+ROOF+'" fill="#E5342B"/></g></g></svg>';
   /* szójel: középről kifelé, betűnként */
   var w='',t='JÓZSA KFT.',mid=(t.length-1)/2;
@@ -719,8 +719,8 @@ dialog.lb button{position:fixed;top:14px;right:14px;width:48px;height:48px;borde
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="mark" viewBox="20 10 88 110">
-    <path d="M64 15 L104 49 L24 49 Z" fill="#E5342B"/>
-    <path d="M32 49 H96 V68 H78 A14 14 0 0 0 50 68 H32 Z" fill="#2FA84F"/>
+    <path d="M64 15 L106 49 L22 49 Z" fill="#E5342B"/>
+    <path d="M28 49 H100 V68 H78 A14 14 0 0 0 50 68 H28 Z" fill="#2FA84F"/>
     <rect x="32" y="68" width="18" height="35" fill="#29A9E1"/>
     <rect x="78" y="68" width="18" height="35" fill="#FBCF07"/>
     <rect x="28" y="103" width="72" height="12" rx="2" fill="#2FA84F"/>
